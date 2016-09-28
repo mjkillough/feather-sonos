@@ -8,11 +8,11 @@ import time
 import upnp
 
 
-def discover_ips(timeout=2):
-    """Discover Sonos devices on local network and generate their IPs.
+DEFAULT_DISCOVER_TIMEOUT = 2
 
-    Accepts optional `timeout` parameter, which gives total timeout in seconds.
-    """
+
+def _discover_ips(timeout=DEFAULT_DISCOVER_TIMEOUT):
+    """Discover Sonos devices on local network and generate their IPs."""
     MCAST_GRP = '239.255.255.250'
     MCAST_PORT = 1900
     PLAYER_SEARCH = '\n'.join((
@@ -48,3 +48,41 @@ def discover_ips(timeout=2):
                 discovered.add(ip)
                 yield ip
             time.sleep(0.1)
+
+
+def discover(timeout=DEFAULT_DISCOVER_TIMEOUT):
+    """Discover Sonos devices on local network and returns as `Sonos` instances.
+
+    Accepts optional `timeout` parameter, which gives total timeout in seconds.
+    """
+    for ip in _discover_ips(timeout):
+        yield Sonos(ip)
+
+
+class Sonos(object):
+    """Represents a Sonos device (usually a speaker)"""
+
+    def __init__(self, ip):
+        self.ip = ip
+
+    @property
+    def _base_url(self):
+        return 'http://%s:1400' % self.ip
+
+    @property
+    def _av_transport_url(self):
+        return self._base_url + '/MediaRenderer/AVTransport/Control'
+
+    def _issue_av_transport_command(self, command):
+        # Play/Pause/Next are all very similar.
+        return upnp.send_command(
+            self._av_transport_url,
+            'AVTransport', 1, command, [('InstanceID', 0), ('Speed', 1)]
+        )
+
+    def play(self):
+        self._issue_av_transport_command('Play')
+    def pause(self):
+        self._issue_av_transport_command('Pause')
+    def next(self):
+        self._issue_av_transport_command('Next')
