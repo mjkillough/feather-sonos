@@ -41,7 +41,8 @@ def _discover_ips(timeout=DEFAULT_DISCOVER_TIMEOUT):
         try:
             data, (ip, port) = sock.recvfrom(1024)
         except OSError as e:
-            if e.args[0] != errno.ETIMEDOUT:
+            # MicroPython returns ETIMEDOUT, but CPython 3.5 returns EAGAIN.
+            if e.args[0] not in (errno.ETIMEDOUT, errno.EAGAIN):
                 raise
         else:
             if b'Sonos' in data and ip not in discovered:

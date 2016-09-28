@@ -4,9 +4,9 @@
 import unittest
 
 try:
-    import io
+    import uio as io
 except ImportError:
-    import uio
+    import io
 
 import upnp
 

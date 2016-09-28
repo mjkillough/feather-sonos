@@ -4,13 +4,15 @@
 import xmltok
 
 try:
+    import uio as io
+except ImportError:
     import io
-except ImportError:
-    import uio
+
 try:
-    import requests
+    import urequests as requests
 except ImportError:
-    import urequests
+    import requests
+
 
 soap_action_template = 'urn:schemas-upnp-org:service:{service_type}:{version}#{action}'
 soap_body_template = (
@@ -74,9 +76,9 @@ def send_command(url, service_type, version, action, arguments):
         'SOAPACTION': soap_action,
     }
 
-    resp = urequests.post(url, headers=headers, data=soap)
+    resp = requests.post(url, headers=headers, data=soap)
     if resp.status_code == 200:
         # Need a file-like object to unicode string.
-        return parse_response(action, uio.StringIO(resp.text))
+        return parse_response(action, io.StringIO(resp.text))
     else:
         raise Exception('UPnP command failed: %s' % resp.content.decode('utf-8'))
