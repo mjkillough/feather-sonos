@@ -20,7 +20,7 @@ soap_body_template = (
 )
 
 
-def parse_upnp_response(action, resp):
+def parse_response(action, resp):
     arguments = []
     action_response_tag = ('u', action + 'Response')
 
@@ -49,7 +49,7 @@ def parse_upnp_response(action, resp):
     return arguments
 
 
-def send_upnp_command(url, service_type, version, action, arguments):
+def send_command(url, service_type, version, action, arguments):
     # NOTE: Does not deal with any escaping.
     wrapped_arguments = ''.join(
         '<{name}>{value}</{name}>'.format(name=name, value=value)
@@ -70,8 +70,8 @@ def send_upnp_command(url, service_type, version, action, arguments):
     resp = urequests.post(url, headers=headers, data=soap)
 
 
-url = '192.168.1.100'
-send_command(
-    'http://{url}:1400/MediaRenderer/AVTransport/Control'.format(url=url),
-    'AVTransport', 1, 'Pause', [('InstanceID', 0), ('Speed', 1)]
-)
+# url = '192.168.1.100'
+# send_upnp_command(
+#     'http://{url}:1400/MediaRenderer/AVTransport/Control'.format(url=url),
+#     'AVTransport', 1, 'Pause', [('InstanceID', 0), ('Speed', 1)]
+# )
