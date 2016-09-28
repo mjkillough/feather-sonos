@@ -1,9 +1,16 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-import urequests
 import xmltok
 
+try:
+    import io
+except ImportError:
+    import uio
+try:
+    import requests
+except ImportError:
+    import urequests
 
 soap_action_template = 'urn:schemas-upnp-org:service:{service_type}:{version}#{action}'
 soap_body_template = (
@@ -27,7 +34,7 @@ def parse_response(action, resp):
     # We want to look for a tag <u:{action}Response>, and produce a list of
     # ({name}, {value}) tuples, for each <{name}>{value}</{name}> child element
     # of it. Rather than use a proper parser, use the MicroPython XML tokenizer.
-    tokens = xmltok.tokenize(resp.raw)
+    tokens = xmltok.tokenize(resp)
     token = token_value = None
     try:
         while not (token == xmltok.START_TAG and token_value == action_response_tag):
@@ -68,10 +75,8 @@ def send_command(url, service_type, version, action, arguments):
     }
 
     resp = urequests.post(url, headers=headers, data=soap)
-
-
-# url = '192.168.1.100'
-# send_upnp_command(
-#     'http://{url}:1400/MediaRenderer/AVTransport/Control'.format(url=url),
-#     'AVTransport', 1, 'Pause', [('InstanceID', 0), ('Speed', 1)]
-# )
+    if resp.status_code == 200:
+        # Need a file-like object to unicode string.
+        return parse_response(action, uio.StringIO(resp.text))
+    else:
+        raise Exception('UPnP command failed: %s' % resp.content.decode('utf-8'))

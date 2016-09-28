@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-import io
 import unittest
 
-import urequests
+try:
+    import io
+except ImportError:
+    import uio
 
 import upnp
 
@@ -30,8 +32,7 @@ class UpnpTests(unittest.TestCase):
         soap_xml = self.soap_response_template.format(
             action='Pause', args_xml=''
         )
-        resp = urequests.Response(io.StringIO(soap_xml))
-        arguments = upnp.parse_response('Pause', resp)
+        arguments = upnp.parse_response('Pause', io.StringIO(soap_xml))
         self.assertEqual(arguments, [])
 
     def test_parse_response_with_arguments(self):
@@ -47,8 +48,7 @@ class UpnpTests(unittest.TestCase):
         soap_xml = self.soap_response_template.format(
             action='Pause', args_xml=args_xml
         )
-        resp = urequests.Response(io.StringIO(soap_xml))
-        arguments = upnp.parse_response('Pause', resp)
+        arguments = upnp.parse_response('Pause', io.StringIO(soap_xml))
         self.assertEqual(arguments, [
             (arg['name'], arg['value'])
             for arg in args
@@ -57,8 +57,7 @@ class UpnpTests(unittest.TestCase):
     def test_parse_response_with_invalid_xml(self):
         """Passing some invalid badly formed XML should cause it to give up"""
         with self.assertRaises(Exception):
-            resp = urequests.Response(io.StringIO('<a>'))
-            upnp.parse_response('Pause', resp)
+            upnp.parse_response('Pause', io.StringIO('<a>'))
 
 
 if __name__ == '__main__':
