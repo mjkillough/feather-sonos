@@ -121,14 +121,7 @@ def query_zone_group_topology(ip):
     )
 
     # Yes. This is XML serialized as a string inside an XML UPnP response.
-    # Unescape it in the noddiest way possible.
-    xml_string = (response['ZoneGroupState']
-        .replace('&lt;', '<')
-        .replace('&gt;', '>')
-        .replace('&quot;', '"')
-        .replace('&amp;', '&')
-        .replace('&apos;', '\'')
-    )
+    xml_string = response['ZoneGroupState']
     tokens = xmltok.tokenize(io.StringIO(xml_string))
 
     # This is getting silly. It might be time to write a very light-weight

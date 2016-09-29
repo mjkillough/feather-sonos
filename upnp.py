@@ -29,6 +29,20 @@ soap_body_template = (
 )
 
 
+def _unescape(value):
+    # xmltok doesn't unescape any of the characters that are escaped inside the
+    # tokens. As Sonos regularly includes XML as text inside their UPnP responses,
+    # it's important we unescape it.
+    # Do the noddiest thing possible, as it seems to be enough.
+    return (value
+        .replace('&lt;', '<')
+        .replace('&gt;', '>')
+        .replace('&quot;', '"')
+        .replace('&amp;', '&')
+        .replace('&apos;', '\'')
+    )
+
+
 def parse_response(action, resp):
     arguments = []
     action_response_tag = ('u', action + 'Response')
@@ -50,7 +64,7 @@ def parse_response(action, resp):
             if token == xmltok.START_TAG:
                 _, argument_name = token_value
             elif token == xmltok.TEXT:
-                arguments.append((argument_name, token_value))
+                arguments.append((argument_name, _unescape(token_value)))
                 argument_name = None
     except StopIteration:
         raise Exception('Bad UPnP response')

@@ -106,7 +106,8 @@ class ZoneGroupTopologyTests(unittest.TestCase):
 
     def test_zone_group_topology(self):
         """Parsing the Zone Group State from my local network gives the right output."""
-        resp_arguments = {'ZoneGroupState': ACTUAL_TOPOLOGY_XML}
+        xml = upnp._unescape(ACTUAL_TOPOLOGY_XML)
+        resp_arguments = {'ZoneGroupState': xml}
         with self._mock(upnp, 'send_command', resp_arguments):
             topology = sonos.query_zone_group_topology('0.0.0.0')
         self.assertEqual(topology, ACTUAL_TOPOLOGY_PARSED)

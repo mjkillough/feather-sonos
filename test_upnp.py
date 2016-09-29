@@ -59,6 +59,15 @@ class UpnpTests(unittest.TestCase):
         with self.assertRaises(Exception):
             upnp.parse_response('Pause', io.StringIO('<a>'))
 
+    def test_unescape_special_characters(self):
+        """Argument values should have their special characters unescaped"""
+        arg = dict(name='arg1', value='&lt;xml attr=&quot;with &amp;apos; in it&quot;&gt;&lt;/test&gt;')
+        args_xml = self.argument_temlate.format(**arg)
+        soap_xml = self.soap_response_template.format(
+            action='NotReal', args_xml=args_xml
+        )
+        arguments = upnp.parse_response('NotReal', io.StringIO(soap_xml))
+        self.assertEqual(arguments, dict(arg1='<xml attr="with \' in it"></test>'))
 
 if __name__ == '__main__':
     unittest.main()
