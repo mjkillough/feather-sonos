@@ -4,6 +4,7 @@
 import types
 import unittest
 
+import discovery
 import sonos
 import upnp
 
@@ -84,7 +85,7 @@ class ZoneGroupTopologyTests(unittest.TestCase):
     def test_location_to_ip(self):
         """Given a Location from a Zone Group Topology we can get the IP of the player."""
         location = 'http://192.168.1.69:1400/xml/device_description.xml'
-        ip = sonos._zone_group_topology_location_to_ip(location)
+        ip = discovery._zone_group_topology_location_to_ip(location)
         self.assertEqual(ip, '192.168.1.69')
 
     # Would have prefered contextlib.contextmanager, but pip-micropython
@@ -109,15 +110,15 @@ class ZoneGroupTopologyTests(unittest.TestCase):
         xml = upnp._unescape(ACTUAL_TOPOLOGY_XML)
         resp_arguments = {'ZoneGroupState': xml}
         with self._mock(upnp, 'send_command', resp_arguments):
-            topology = sonos.query_zone_group_topology('0.0.0.0')
+            topology = discovery.query_zone_group_topology('0.0.0.0')
         self.assertEqual(topology, ACTUAL_TOPOLOGY_PARSED)
 
     def test_discover_actual_topology(self):
         """Given a topology, sonos.discover() should return Sonos instances for
         each speaker in the network."""
-        with self._mock(sonos, '_discover_ip', '0.0.0.0'):
-            with self._mock(sonos, 'query_zone_group_topology', ACTUAL_TOPOLOGY_PARSED):
-                speakers = sonos.discover()
+        with self._mock(discovery, '_discover_ip', '0.0.0.0'):
+            with self._mock(discovery, 'query_zone_group_topology', ACTUAL_TOPOLOGY_PARSED):
+                speakers = discovery.discover()
                 self.assertIsInstance(speakers, types.GeneratorType)
                 speakers = list(speakers)
                 # Despite the name, this built-in method actually checks the
@@ -146,9 +147,9 @@ class ZoneGroupTopologyTests(unittest.TestCase):
                 }
             }
         }]
-        with self._mock(sonos, '_discover_ip', '0.0.0.0'):
-            with self._mock(sonos, 'query_zone_group_topology', FAKE_TOPOLOGY_PARSED):
-                speakers = list(sonos.discover())
+        with self._mock(discovery, '_discover_ip', '0.0.0.0'):
+            with self._mock(discovery, 'query_zone_group_topology', FAKE_TOPOLOGY_PARSED):
+                speakers = list(discovery.discover())
                 self.assertEqual(speakers, [
                     sonos.Sonos('RINCON_5CAA0000000000001', '192.168.1.100', 'Michael\'s Room'),
                 ])
