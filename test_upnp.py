@@ -33,7 +33,7 @@ class UpnpTests(unittest.TestCase):
             action='Pause', args_xml=''
         )
         arguments = upnp.parse_response('Pause', io.StringIO(soap_xml))
-        self.assertEqual(arguments, [])
+        self.assertEqual(arguments, dict())
 
     def test_parse_response_with_arguments(self):
         """Passing a SOAP response with some valid arguments should return them"""
@@ -49,10 +49,10 @@ class UpnpTests(unittest.TestCase):
             action='Pause', args_xml=args_xml
         )
         arguments = upnp.parse_response('Pause', io.StringIO(soap_xml))
-        self.assertEqual(arguments, [
+        self.assertEqual(arguments, dict([
             (arg['name'], arg['value'])
             for arg in args
-        ])
+        ]))
 
     def test_parse_response_with_invalid_xml(self):
         """Passing some invalid badly formed XML should cause it to give up"""

@@ -55,7 +55,7 @@ def parse_response(action, resp):
     except StopIteration:
         raise Exception('Bad UPnP response')
 
-    return arguments
+    return dict(arguments)
 
 
 def send_command(url, service_type, version, action, arguments):
