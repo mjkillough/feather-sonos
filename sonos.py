@@ -198,6 +198,7 @@ class Sonos(object):
         self.ip = ip
         self.name = name
         self.other_players = []
+        self._base_url = BASE_URL_TEMPLATE % self.ip
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
@@ -216,9 +217,8 @@ class Sonos(object):
             self.uuid, self.ip, self.name, self.other_players
         )
 
-    @property
-    def _base_url(self):
-        return BASE_URL_TEMPLATE % self.ip
+    def add_player_to_group(self, player):
+        self.other_players.append(player)
 
     def _issue_av_transport_command(self, command):
         # Play/Pause/Next are all very similar.
