@@ -211,6 +211,11 @@ class Sonos(object):
             self.name == other.name
         )
 
+    def __repr__(self):
+        return '<Sonos uuid=%s, ip=%s, name=%s, other_players=%r>' % (
+            self.uuid, self.ip, self.name, self.other_players
+        )
+
     @property
     def _base_url(self):
         return BASE_URL_TEMPLATE % self.ip
