@@ -88,21 +88,25 @@ class ZoneGroupTopologyTests(unittest.TestCase):
 
     # Would have prefered contextlib.contextmanager, but pip-micropython
     # seems to have issues with it.
-    class _mock_upnp_send_command:
-        def __init__(self, resp):
-            self.resp = resp
+    # Obviously would have preferred unittest.mock if it were available.
+    class _mock:
+        def __init__(self, owner, method_name, return_value):
+            self.owner = owner
+            self.method_name = method_name
+            self.return_value = return_value
         def __enter__(self):
             # MicroPython's unittest doesn't have a mock module.
             def mocked(*args, **kwargs):
-                return self.resp
-            self.original, upnp.send_command = upnp.send_command, mocked
+                return self.return_value
+            self.original = getattr(self.owner, self.method_name)
+            setattr(self.owner, self.method_name, mocked)
         def __exit__(self, *unused):
-            upnp.send_command = self.original
+            setattr(self.owner, self.method_name, self.original)
 
     def test_zone_group_topology(self):
         """Parsing the Zone Group State from my local network gives the right output."""
         resp_arguments = {'ZoneGroupState': ACTUAL_ZONE_GROUP_TOPOLOGY}
-        with self._mock_upnp_send_command(resp_arguments):
+        with self._mock(upnp, 'send_command', resp_arguments):
             topology = sonos.query_zone_group_topology('0.0.0.0')
         self.assertEqual(topology, EXPECTED_TOPOLOGY)
 
