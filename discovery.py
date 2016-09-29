@@ -42,7 +42,6 @@ def _discover_ip(timeout=DEFAULT_DISCOVER_TIMEOUT):
 
     start_time = time.time()
     end_time = start_time + timeout
-    discovered = set()
     while True:
         if time.time() >= end_time:
             break
@@ -54,7 +53,6 @@ def _discover_ip(timeout=DEFAULT_DISCOVER_TIMEOUT):
                 raise
         else:
             if b'Sonos' in data and ip not in discovered:
-                discovered.add(ip)
                 return ip
             time.sleep(0.1)
 
