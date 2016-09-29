@@ -4,7 +4,6 @@
 import errno
 import socket
 import time
-import urllib.parse
 
 try:
     import uio as io
@@ -86,7 +85,14 @@ def discover(timeout=DEFAULT_DISCOVER_TIMEOUT):
 def _zone_group_topology_location_to_ip(location):
     """Takes a <ZoneGroupMember Location=> attribute and returns the IP of
     the player."""
-    return urllib.parse.urlsplit(location).hostname
+    # Assume it is of the form http://ip:port/blah/, rather than supporting
+    # any type of URL and needing `urllib.parse`. (It is available for MicroPython
+    # but it requires a million dependencies).
+    scheme_prefix = 'http://'
+    assert location.startswith(scheme_prefix)
+    location = location[len(scheme_prefix):]
+    port_idx = location.find(':')
+    return location[:port_idx]
 
 
 def query_zone_group_topology(ip):
