@@ -20,8 +20,8 @@ BASE_URL_TEMPLATE = 'http://%s:1400'
 DEFAULT_DISCOVER_TIMEOUT = 2
 
 
-def _discover_ips(timeout=DEFAULT_DISCOVER_TIMEOUT):
-    """Discover Sonos devices on local network and generate their IPs."""
+def _discover_ip(timeout=DEFAULT_DISCOVER_TIMEOUT):
+    """Discover the IP of a single Sonos device on the network."""
     MCAST_GRP = '239.255.255.250'
     MCAST_PORT = 1900
     PLAYER_SEARCH = '\n'.join((
@@ -56,17 +56,31 @@ def _discover_ips(timeout=DEFAULT_DISCOVER_TIMEOUT):
         else:
             if b'Sonos' in data and ip not in discovered:
                 discovered.add(ip)
-                yield ip
+                return ip
             time.sleep(0.1)
 
 
 def discover(timeout=DEFAULT_DISCOVER_TIMEOUT):
-    """Discover Sonos devices on local network and returns as `Sonos` instances.
+    """Discover Sonos devices on local network. Yields a Sonos instance for
+    each coordinator on the network.
 
     Accepts optional `timeout` parameter, which gives total timeout in seconds.
     """
-    for ip in _discover_ips(timeout):
-        yield Sonos(ip)
+    ip = _discover_ip(timeout)
+    assert ip is not None, 'Could not find Sonos device'
+
+    topology = query_zone_group_topology(ip)
+    for group in topology:
+        coordinator_uuid = group['coordinator_uuid']
+        players = {
+            player_uuid: Sonos(player_uuid, player['ip'], player['name'])
+            for player_uuid, player in group['players'].items()
+        }
+        coordinator = players[coordinator_uuid]
+        for player_uuid, player in players.items():
+            if player_uuid != coordinator_uuid:
+                coordinator.add_player_to_group(player)
+        yield coordinator
 
 
 def _zone_group_topology_location_to_ip(location):
@@ -79,11 +93,14 @@ def query_zone_group_topology(ip):
     """Queries the Zone Group Topology and returns a list of coordinators:
 
         > [
-        >    # One per connected group of players.
-        >    dict(coordinator_uuid, players=dict(
-        >         # One per player in group, including coordinator.
-        >         player_uuid=dict(uuid, ip, player_name)
-        >    ))
+        >     # One per connected group of players.
+        >     dict(coordinator_uuid, players=dict(
+        >         # One per player in group, including coordinator. Keyed
+        >         # on player UUID.
+        >         player_uuid=dict(
+                      dict(uuid, ip, player_name)
+        >         )
+        >     )
         > ]
 
     This is quite an expensive operation, so recommend this be done once and
@@ -160,10 +177,33 @@ def query_zone_group_topology(ip):
 
 
 class Sonos(object):
-    """Represents a Sonos device (usually a speaker)"""
+    """Represents a Sonos device (usually a speaker).
 
-    def __init__(self, ip):
+    Usually you'd access the Sonos instance for the controller of a group. The
+    other devices in the group are stored on `Sonos.other_players`.
+
+    This class isn't really meant to manage group membership (as `soco.SoCo`
+    instances do), and so it assumes group membership doesn't change after it's
+    created.
+    """
+
+    def __init__(self, uuid, ip, name):
+        self.uuid = uuid
         self.ip = ip
+        self.name = name
+        self.other_players = []
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+        # We really only need to check the UUIDs match, but we'll test all
+        # of our important fields match, so that we can use this for asserts
+        # in the tests.
+        return (
+            self.uuid == other.uuid and
+            self.ip == other.ip and
+            self.name == other.name
+        )
 
     @property
     def _base_url(self):
@@ -182,3 +222,6 @@ class Sonos(object):
         self._issue_av_transport_command('Pause')
     def next(self):
         self._issue_av_transport_command('Next')
+
+    def add_player_to_group(self, player):
+        self.other_players.append(player)

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
+import types
 import unittest
 
 import sonos
@@ -8,7 +9,7 @@ import upnp
 
 
 # Output from my Sonos system, with UUIDs sanitized.
-ACTUAL_ZONE_GROUP_TOPOLOGY = (
+ACTUAL_TOPOLOGY_XML = (
     '&lt;ZoneGroups&gt;&lt;ZoneGroup Coordinator=&quot;RINCON_5CAA000000000000'
     '1&quot; ID=&quot;RINCON_5CAA0000000000001:13&quot;&gt;&lt;ZoneGroupMember'
     ' UUID=&quot;RINCON_5CAA0000000000001&quot; Location=&quot;http://192.168.'
@@ -44,7 +45,7 @@ ACTUAL_ZONE_GROUP_TOPOLOGY = (
     'ntation=&quot;0&quot; RoomCalibrationState=&quot;4&quot; SecureRegState=&'
     'quot;3&quot;/&gt;&lt;/ZoneGroup&gt;&lt;/ZoneGroups&gt;'
 )
-EXPECTED_TOPOLOGY = [
+ACTUAL_TOPOLOGY_PARSED = [
     {
         'coordinator_uuid': 'RINCON_5CAA0000000000001',
         'players': {
@@ -105,10 +106,54 @@ class ZoneGroupTopologyTests(unittest.TestCase):
 
     def test_zone_group_topology(self):
         """Parsing the Zone Group State from my local network gives the right output."""
-        resp_arguments = {'ZoneGroupState': ACTUAL_ZONE_GROUP_TOPOLOGY}
+        resp_arguments = {'ZoneGroupState': ACTUAL_TOPOLOGY_XML}
         with self._mock(upnp, 'send_command', resp_arguments):
             topology = sonos.query_zone_group_topology('0.0.0.0')
-        self.assertEqual(topology, EXPECTED_TOPOLOGY)
+        self.assertEqual(topology, ACTUAL_TOPOLOGY_PARSED)
+
+    def test_discover_actual_topology(self):
+        """Given a topology, sonos.discover() should return Sonos instances for
+        each speaker in the network."""
+        with self._mock(sonos, '_discover_ip', '0.0.0.0'):
+            with self._mock(sonos, 'query_zone_group_topology', ACTUAL_TOPOLOGY_PARSED):
+                speakers = sonos.discover()
+                self.assertIsInstance(speakers, types.GeneratorType)
+                speakers = list(speakers)
+                # Despite the name, this built-in method actually checks the
+                # lists are equal, without caring about order.
+                self.assertCountEqual(speakers, [
+                    sonos.Sonos('RINCON_5CAA0000000000001', '192.168.1.100', 'Michael\'s Room'),
+                    sonos.Sonos('RINCON_B8E90000000000002', '192.168.1.67', 'Living Room'),
+                    sonos.Sonos('RINCON_B8E90000000000003', '192.168.1.69', 'Dining Room'),
+                ])
+
+    def test_discover_fake_topology_with_two_speakers_in_group(self):
+        """sonos.discover() should return one Sonos instance per group, with the
+        other members of the group available from that instance."""
+        FAKE_TOPOLOGY_PARSED = [{
+            'coordinator_uuid': 'RINCON_5CAA0000000000001',
+            'players': {
+                'RINCON_5CAA0000000000001': {
+                    'ip': '192.168.1.100',
+                    'name': 'Michael\'s Room',
+                    'uuid': 'RINCON_5CAA0000000000001'
+                },
+                'RINCON_B8E90000000000002': {
+                    'ip': '192.168.1.67',
+                    'name': 'Living Room',
+                    'uuid': 'RINCON_B8E90000000000002'
+                }
+            }
+        }]
+        with self._mock(sonos, '_discover_ip', '0.0.0.0'):
+            with self._mock(sonos, 'query_zone_group_topology', FAKE_TOPOLOGY_PARSED):
+                speakers = list(sonos.discover())
+                self.assertEqual(speakers, [
+                    sonos.Sonos('RINCON_5CAA0000000000001', '192.168.1.100', 'Michael\'s Room'),
+                ])
+                self.assertEqual(speakers[0].other_players, [
+                    sonos.Sonos('RINCON_B8E90000000000002', '192.168.1.67', 'Living Room'),
+                ])
 
 
 if __name__ == '__main__':
