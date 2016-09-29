@@ -7,6 +7,7 @@ import unittest
 import discovery
 import sonos
 import upnp
+import testhelpers
 
 
 # Output from my Sonos system, with UUIDs sanitized.
@@ -88,36 +89,19 @@ class ZoneGroupTopologyTests(unittest.TestCase):
         ip = discovery._zone_group_topology_location_to_ip(location)
         self.assertEqual(ip, '192.168.1.69')
 
-    # Would have prefered contextlib.contextmanager, but pip-micropython
-    # seems to have issues with it.
-    # Obviously would have preferred unittest.mock if it were available.
-    class _mock:
-        def __init__(self, owner, method_name, return_value):
-            self.owner = owner
-            self.method_name = method_name
-            self.return_value = return_value
-        def __enter__(self):
-            # MicroPython's unittest doesn't have a mock module.
-            def mocked(*args, **kwargs):
-                return self.return_value
-            self.original = getattr(self.owner, self.method_name)
-            setattr(self.owner, self.method_name, mocked)
-        def __exit__(self, *unused):
-            setattr(self.owner, self.method_name, self.original)
-
     def test_zone_group_topology(self):
         """Parsing the Zone Group State from my local network gives the right output."""
         xml = upnp._unescape(ACTUAL_TOPOLOGY_XML)
         resp_arguments = {'ZoneGroupState': xml}
-        with self._mock(upnp, 'send_command', resp_arguments):
+        with testhelpers.mock(upnp, 'send_command', resp_arguments):
             topology = discovery.query_zone_group_topology('0.0.0.0')
         self.assertEqual(topology, ACTUAL_TOPOLOGY_PARSED)
 
     def test_discover_actual_topology(self):
         """Given a topology, sonos.discover() should return Sonos instances for
         each speaker in the network."""
-        with self._mock(discovery, '_discover_ip', '0.0.0.0'):
-            with self._mock(discovery, 'query_zone_group_topology', ACTUAL_TOPOLOGY_PARSED):
+        with testhelpers.mock(discovery, '_discover_ip', '0.0.0.0'):
+            with testhelpers.mock(discovery, 'query_zone_group_topology', ACTUAL_TOPOLOGY_PARSED):
                 speakers = discovery.discover()
                 self.assertIsInstance(speakers, types.GeneratorType)
                 speakers = list(speakers)
@@ -147,8 +131,8 @@ class ZoneGroupTopologyTests(unittest.TestCase):
                 }
             }
         }]
-        with self._mock(discovery, '_discover_ip', '0.0.0.0'):
-            with self._mock(discovery, 'query_zone_group_topology', FAKE_TOPOLOGY_PARSED):
+        with testhelpers.mock(discovery, '_discover_ip', '0.0.0.0'):
+            with testhelpers.mock(discovery, 'query_zone_group_topology', FAKE_TOPOLOGY_PARSED):
                 speakers = list(discovery.discover())
                 self.assertEqual(speakers, [
                     sonos.Sonos('RINCON_5CAA0000000000001', '192.168.1.100', 'Michael\'s Room'),

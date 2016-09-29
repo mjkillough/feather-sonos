@@ -52,7 +52,7 @@ def _discover_ip(timeout=DEFAULT_DISCOVER_TIMEOUT):
             if e.args[0] not in (errno.ETIMEDOUT, errno.EAGAIN):
                 raise
         else:
-            if b'Sonos' in data and ip not in discovered:
+            if b'Sonos' in data:
                 return ip
             time.sleep(0.1)
 
