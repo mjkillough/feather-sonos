@@ -4,10 +4,19 @@
 import errno
 import socket
 import time
+import urllib.parse
+
+try:
+    import uio as io
+except ImportError:
+    import io
+
+import xmltok
 
 import upnp
 
 
+BASE_URL_TEMPLATE = 'http://%s:1400'
 DEFAULT_DISCOVER_TIMEOUT = 2
 
 
@@ -60,6 +69,96 @@ def discover(timeout=DEFAULT_DISCOVER_TIMEOUT):
         yield Sonos(ip)
 
 
+def _zone_group_topology_location_to_ip(location):
+    """Takes a <ZoneGroupMember Location=> attribute and returns the IP of
+    the player."""
+    return urllib.parse.urlsplit(location).hostname
+
+
+def query_zone_group_topology(ip):
+    """Queries the Zone Group Topology and returns a list of coordinators:
+
+        > [
+        >    # One per connected group of players.
+        >    dict(coordinator_uuid, players=dict(
+        >         # One per player in group, including coordinator.
+        >         player_uuid=dict(uuid, ip, player_name)
+        >    ))
+        > ]
+
+    This is quite an expensive operation, so recommend this be done once and
+    used to instantiate Sonos instances. This function is also very gnarly,
+    as the lack of XML parser for MicroPython makes it difficult. (I really
+    don't want to write an XML parser, as I'll do it wrong...)
+    """
+    base_url = BASE_URL_TEMPLATE % ip
+    response = upnp.send_command(
+        base_url + '/ZoneGroupTopology/Control',
+        'ZoneGroupTopology', 1, 'GetZoneGroupState', []
+    )
+
+    # Yes. This is XML serialized as a string inside an XML UPnP response.
+    # Unescape it in the noddiest way possible.
+    xml_string = (response['ZoneGroupState']
+        .replace('&lt;', '<')
+        .replace('&gt;', '>')
+        .replace('&quot;', '"')
+        .replace('&amp;', '&')
+        .replace('&apos;', '\'')
+    )
+    tokens = xmltok.tokenize(io.StringIO(xml_string))
+
+    # This is getting silly. It might be time to write a very light-weight
+    # XML parser?
+    coordinators = []
+    token, value, *rest = next(tokens)
+    while True:
+        coordinator_uuid = None
+        # Find <ZoneGroup>, or give up if we've seen the last one (or none!)
+        try:
+            while not (token == xmltok.START_TAG and value == ('', 'ZoneGroup')):
+                token, value, *rest = next(tokens)
+        except StopIteration:
+            break
+        # Find Coordinator= attribute.
+        while not (token == xmltok.ATTR and value == ('', 'Coordinator')):
+            token, value, *rest = next(tokens)
+        coordinator_uuid, *_ = rest
+        # Parse child-tags until we get </ZoneGroup>
+        players = dict()
+        while not (token == xmltok.END_TAG and value == ('', 'ZoneGroup')):
+            token, value, *rest = next(tokens)
+            # Find <ZoneGroupMember>
+            if token == xmltok.START_TAG and value == ('', 'ZoneGroupMember'):
+                # As this is a self-closing tag, xmltok never gives us an end
+                # token. Once we have all the attributes we need, move onto
+                # the next <ZoneGroupMember>.
+                player_uuid = player_name = player_ip = None
+                while not all((player_uuid, player_name, player_ip)):
+                    token, value, *rest = next(tokens)
+                    if token == xmltok.ATTR:
+                        if value == ('', 'UUID'):
+                            player_uuid, *_ = rest
+                        elif value == ('', 'ZoneName'):
+                            player_name, *_ = rest
+                        elif value == ('', 'Location'):
+                            location, *_ = rest
+                            player_ip = _zone_group_topology_location_to_ip(location)
+                players[player_uuid] = dict(
+                    uuid=player_uuid,
+                    name=player_name,
+                    ip=player_ip
+                )
+
+        # We've finished parsing information about the <ZoneGroup>.
+        coordinators.append(dict(
+            coordinator_uuid=coordinator_uuid,
+            players=players
+        ))
+
+    return coordinators
+
+
 class Sonos(object):
     """Represents a Sonos device (usually a speaker)"""
 
@@ -68,16 +167,12 @@ class Sonos(object):
 
     @property
     def _base_url(self):
-        return 'http://%s:1400' % self.ip
-
-    @property
-    def _av_transport_url(self):
-        return self._base_url + '/MediaRenderer/AVTransport/Control'
+        return BASE_URL_TEMPLATE % self.ip
 
     def _issue_av_transport_command(self, command):
         # Play/Pause/Next are all very similar.
         return upnp.send_command(
-            self._av_transport_url,
+            self._base_url + '/MediaRenderer/AVTransport/Control',
             'AVTransport', 1, command, [('InstanceID', 0), ('Speed', 1)]
         )
 
