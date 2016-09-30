@@ -1,12 +1,8 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
+import io
 import unittest
-
-try:
-    import uio as io
-except ImportError:
-    import io
 
 import upnp
 

@@ -1,12 +1,9 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-import xmltok
+import io
 
-try:
-    import uio as io
-except ImportError:
-    import io
+import xmltok
 
 try:
     import urequests as requests
