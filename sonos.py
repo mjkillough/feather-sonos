@@ -51,7 +51,7 @@ class TrackInfo:
                 break
 
     def __repr__(self):
-        return '<TrackInfo artist=\'%s\' album=\'%s\ title=\'%s\' position=%s/%s' % (
+        return '<TrackInfo artist=\'%s\' album=\'%s\ title=\'%s\' position=%s/%s>' % (
             self.artist, self.album, self.title, self.current_time, self.total_time
         )
 
@@ -126,4 +126,4 @@ class Sonos:
 
 
 if __name__ == '__main__':
-    [s.get_current_track_info() for s in discovery.discover()]
+    print([s.get_current_track_info() for s in discovery.discover()])
