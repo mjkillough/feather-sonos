@@ -2,13 +2,9 @@
 # encoding: utf-8
 
 import errno
+import io
 import socket
 import time
-
-try:
-    import uio as io
-except ImportError:
-    import io
 
 import xmltok
 
