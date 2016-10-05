@@ -1,0 +1,8 @@
+micropython-io
+micropython-xmltok
+micropython-urequests
+micropython-unittest
+micropython-types
+micropython-errno
+micropython-socket
+micropython-time

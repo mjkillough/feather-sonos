@@ -1,0 +1,12 @@
+micropython-io==0.0.2
+micropython-xmltok==0.1
+micropython-unittest==0.2
+micropython-errno==0.1.3
+micropython-time==0.3
+
+# Would prefer to use micropython-urequests here, but it relies on usocket,
+# which obviously isn't available on CPython.
+requests==2.11.1
+
+# No micropython-socket, as it relies on usocket.
+# No micropython-types, as it doesn't install with pip.
