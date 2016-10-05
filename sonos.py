@@ -114,6 +114,7 @@ class Sonos:
         if 'TrackMetaData' not in response:
             # Nothing playing.
             return None
+        print('hm')
         return TrackInfo(
             response['TrackMetaData'], # DIDL-Lite XML
             response['TrackDuration'], # Total length

@@ -105,13 +105,14 @@ class ZoneGroupTopologyTests(unittest.TestCase):
                 speakers = discovery.discover()
                 self.assertIsInstance(speakers, types.GeneratorType)
                 speakers = list(speakers)
-                # Despite the name, this built-in method actually checks the
-                # lists are equal, without caring about order.
-                self.assertCountEqual(speakers, [
+                expected_speakers = [
                     sonos.Sonos('RINCON_5CAA0000000000001', '192.168.1.100', 'Michael\'s Room'),
                     sonos.Sonos('RINCON_B8E90000000000002', '192.168.1.67', 'Living Room'),
                     sonos.Sonos('RINCON_B8E90000000000003', '192.168.1.69', 'Dining Room'),
-                ])
+                ]
+                for expected in expected_speakers:
+                    self.assertIn(expected, speakers)
+                self.assertEqual(len(speakers), len(expected_speakers))
 
     def test_discover_fake_topology_with_two_speakers_in_group(self):
         """sonos.discover() should return one Sonos instance per group, with the
