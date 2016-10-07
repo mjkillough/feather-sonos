@@ -79,7 +79,7 @@ esp8266-deploy: esp8266-build
 	)
 
 .PHONY: esp8266-tests
-esp8266-tests: esp8266-deploy
+esp8266-test: esp8266-deploy
 	ampy -p $(PORT) run run-tests.py
 
 
