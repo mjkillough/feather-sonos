@@ -49,13 +49,16 @@ MICROPYTHON_TREE=~/Code/micropython/
 PORT=/dev/ttyUSB0
 
 .PHONY: esp8266-python2-venv
-esp8266-python2-venv: $(VENV_PY2)/bin/activate
-$(VENV_PY2)/bin/activate:
+esp8266-python2-venv: $(VENV_PY2)/marker
+$(VENV_PY2)/marker: requirements-build.txt
 	test -d $(VENV_PY2) || virtualenv -p python2 $(VENV_PY2)
-	$(VENV_PY2)/bin/pip install pyserial
+	$(VENV_PY2)/bin/pip install -r requirements-build.txt
+	touch $(VENV_PY2)/marker
 
 .PHONY: esp8266-build
-esp8266-build: esp8266-python2-venv micropython-venv $(SOURCES) $(TESTS)
+esp8266-build: $(MICROPYTHON_TREE)/esp8266/build/firmware-combined.bin
+$(MICROPYTHON_TREE)/esp8266/build/firmware-combined.bin: $(VENV_PY2)/marker $(VENV_MPY)/marker $(SOURCES) $(TESTS)
+	ls -lh $(MICROPYTHON_TREE)/esp8266/build/firmware-combined.bin
 	# Copy SOURCES and TESTS into the MicroPython source tree. In the future,
 	# we may want a target that doesn't copy the tests in.
 	# This also copies the files in the MicroPython 'virtualenv'. Again, not

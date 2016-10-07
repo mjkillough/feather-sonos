@@ -1,0 +1,4 @@
+# Requirements for CPython 2.7.x venv used for deploying to ESP8266.
+
+pyserial
+ampy

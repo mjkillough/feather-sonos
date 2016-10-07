@@ -1,3 +1,5 @@
+# Requirements to CPython 3.5+ venv used to run the tests.
+
 micropython-io==0.0.2
 micropython-xmltok==0.1
 micropython-unittest==0.2
