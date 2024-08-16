@@ -43,7 +43,7 @@ class SonosTests(unittest.TestCase):
 
     def test_get_current_track_info(self):
         s = sonos.Sonos('', '', '')
-        with testhelpers.mock(s, '_issue_av_transport_command', GET_POSITION_INFO_RESPONSE):
+        with testhelpers.mock(s, '_issue_sonos_command', GET_POSITION_INFO_RESPONSE):
             track_info = s.get_current_track_info()
             self.assertIsInstance(track_info, sonos.TrackInfo)
             self.assertEqual(track_info.total_time, '0:04:21')
@@ -54,7 +54,7 @@ class SonosTests(unittest.TestCase):
 
     def test_no_current_track(self):
         s = sonos.Sonos('', '', '')
-        with testhelpers.mock(s, '_issue_av_transport_command', dict()):
+        with testhelpers.mock(s, '_issue_sonos_command', dict()):
             track_info = s.get_current_track_info()
             self.assertIs(track_info, None)
 

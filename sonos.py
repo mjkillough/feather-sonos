@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-import errno
+# import errno
 import io
-import socket
-import time
+# import socket
+# import time
 
 import xmltok
 
@@ -47,8 +47,10 @@ class TrackInfo:
                 break
 
     def __repr__(self):
-        return '<TrackInfo artist=\'%s\' album=\'%s\ title=\'%s\' position=%s/%s>' % (
-            self.artist, self.album, self.title, self.current_time, self.total_time
+        return '<TrackInfo artist=\'%s\' album=\'%s\' title=\'%s\' position=%s/%s>' % (
+            getattr(self, 'artist', 'unknown'),
+            getattr(self, 'album','unknown'),
+            self.title, self.current_time, self.total_time
         )
 
 
@@ -90,31 +92,44 @@ class Sonos:
     def add_player_to_group(self, player):
         self.other_players.append(player)
 
-    def _issue_av_transport_command(self, command, args=None):
+    def _issue_sonos_command(self, command, args=None, service='AVTransport'):
         if args is None:
             args = [('InstanceID', 0), ('Speed', 1)]
         # Play/Pause/Next are all very similar.
         return upnp.send_command(
-            self._base_url + '/MediaRenderer/AVTransport/Control',
-            'AVTransport', 1, command, args
+            self._base_url + f'/MediaRenderer/{service}/Control',
+            service, 1, command, args
         )
 
     def play(self):
-        self._issue_av_transport_command('Play')
+        self._issue_sonos_command('Play')
+
     def pause(self):
-        self._issue_av_transport_command('Pause')
+        self._issue_sonos_command('Pause')
+
     def next(self):
-        self._issue_av_transport_command('Next')
+        self._issue_sonos_command('Next')
+
+    def vol_up(self, increment=5):
+        'Increase the volume. Return new volume. 0-100'
+        response = self._issue_sonos_command('SetRelativeVolume',
+            args=[('Channel', 'Master'), ('InstanceID', 0), ('Adjustment', int(increment))],
+            service='RenderingControl')
+        return int(response['NewVolume'])
+
+    def vol_down(self, increment=5):
+        'Decrease the volume. Return new volume. 0-100'
+        return self.vol_up(-increment)
 
     def get_current_track_info(self):
-        response = self._issue_av_transport_command('GetPositionInfo', [
+        response = self._issue_sonos_command('GetPositionInfo', [
             ('InstanceID', 0),
             ('Channel', 'Master')
         ])
         if 'TrackMetaData' not in response:
             # Nothing playing.
             return None
-        print('hm')
+
         return TrackInfo(
             response['TrackMetaData'], # DIDL-Lite XML
             response['TrackDuration'], # Total length
@@ -123,4 +138,8 @@ class Sonos:
 
 
 if __name__ == '__main__':
-    print([s.get_current_track_info() for s in discovery.discover()])
+    all_sonos = list(discovery.discover())
+    for s in all_sonos:
+        print(s)
+    for s in all_sonos:
+        print(f"{s.name:15s} : {s.get_current_track_info()}")

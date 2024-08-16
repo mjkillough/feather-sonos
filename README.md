@@ -7,7 +7,7 @@ Controlling Sonos devices from a Feather HUZZAH (ESP8266) using MicroPython. :ra
 
 ### CPython
 
-With Python 3.5+ installed, run:
+With Python 3.6+ installed, run:
 
 ```sh
 make cpython-tests
@@ -25,7 +25,7 @@ python -m unittest discover
 
 ### MicroPython (Unix)
 
-With MicroPython 1.8.4+ installed, run:
+With MicroPython 1.17+ installed, run:
 
 ```sh
 make micropython-test
